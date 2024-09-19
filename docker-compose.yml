@@ -1,12 +1,12 @@
 version: "3.8"
 services:
-  TelegramLangBot:
-    image: cronworkflow.azurecr.io/TelegramLangBot:latest
+  telegram-lang-bot:
+    image: cronworkflow.azurecr.io/telegram-lang-bot:latest
     build:
       context: .
       dockerfile: Dockerfile
     volumes:
-      - .:/TelegramLangBot
+      - .:/bot
     ports:
       - "8080:8080"
     stdin_open: true
