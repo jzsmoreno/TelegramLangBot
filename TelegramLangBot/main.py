@@ -62,9 +62,11 @@ def restricted(func):
 
     return wrapped
 
+
 @restricted
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await context.bot.send_message(chat_id=update.effective_chat.id, text=welcome_message)
+
 
 @restricted
 async def hello(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -77,12 +79,14 @@ async def ask_chatgpt(question):
     except Exception as e:
         return f"An error occurred: {e}"
 
+
 @restricted
 async def handle_question(update: Update, context: CallbackContext) -> None:
     user_id = update.message.from_user.id
     question = update.message.text
     response = await ask_chatgpt(question)
     await update.message.reply_text(response)
+
 
 @restricted
 async def get_user_id(update: Update, context: CallbackContext) -> None:
