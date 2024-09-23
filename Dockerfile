@@ -10,12 +10,9 @@ RUN apt-get update && apt-get install -y \
     g++ \
     unixodbc-dev \
     unixodbc
-    
-EXPOSE 8080
-    
+
 COPY . .
-    
     
 RUN pip install --no-cache-dir -r ./requirements.txt
     
-CMD ["nohup", "python", "./TelegramLangBot/main.py"]
+CMD ["python", "-u", "./TelegramLangBot/main.py"]
