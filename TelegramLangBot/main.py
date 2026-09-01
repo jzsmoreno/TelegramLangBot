@@ -12,7 +12,8 @@ from telegram.ext import (
 )
 from functools import wraps
 from langchain_core.output_parsers import StrOutputParser
-from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.prompts import ChatPromptTemplate, HumanMessagePromptTemplate
+from langchain.schema import SystemMessage
 from langchain_openai import AzureChatOpenAI
 from dotenv import load_dotenv, find_dotenv
 from utils.config import load_config, parse_config
@@ -53,10 +54,21 @@ llm = AzureChatOpenAI(
     model="gpt-4o",
     azure_endpoint=AZURE_ENDPOINT,
     api_key=OPENAI_API_KEY,
-    api_version="2023-03-15-preview",
+    api_version=API_VERSION,
 )
 
+# Normal prompt chain
 chain = prompt | llm | StrOutputParser()
+
+# Chain‑of‑Thought (CoT) prompt – adds a step‑by‑step reasoning before the final answer.
+cot_prompt = ChatPromptTemplate.from_messages([
+    SystemMessage(content="You are a helpful assistant that always thinks step by step before answering."),
+    HumanMessagePromptTemplate.from_template("Question: {pregunta}\nAnswer step by step:"),
+])
+cot_chain = cot_prompt | llm | StrOutputParser()
+
+# Global flag to toggle CoT mode.
+USE_COT = False
 
 
 def restricted(func):
@@ -84,7 +96,11 @@ async def hello(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 async def ask_chatgpt(question: str) -> str:
     try:
-        return await chain.ainvoke({"pregunta": question})
+        if USE_COT:
+            response = await cot_chain.ainvoke({"pregunta": question})
+        else:
+            response = await chain.ainvoke({"pregunta": question})
+        return response
     except Exception as e:
         return f"An error occurred: {e}"
 
@@ -102,6 +118,18 @@ async def get_user_id(update: Update, context: CallbackContext) -> None:
     user_id = update.message.from_user.id
     await update.message.reply_text(f"Your user ID is: {user_id}")
 
+# Command to toggle Chain‑of‑Thought mode
+async def set_cot(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    global USE_COT
+    text = update.message.text.strip().lower()
+    if "on" in text:
+        USE_COT = True
+        await update.message.reply_text("Chain‑of‑Thought mode enabled.")
+    elif "off" in text:
+        USE_COT = False
+        await update.message.reply_text("Chain‑of‑Thought mode disabled.")
+    else:
+        await update.message.reply_text("Usage: /cot on | off")
 
 if __name__ == "__main__":
     application = ApplicationBuilder().token(TOKEN).build()
@@ -114,6 +142,7 @@ if __name__ == "__main__":
     application.add_handler(start_handler)
     application.add_handler(hola_handler)
     application.add_handler(id_handler)
+    application.add_handler(set_cot)  # New handler for CoT toggling
     application.add_handler(gpt_handler)
 
     application.run_polling()
