@@ -1,5 +1,5 @@
-from configparser import ConfigParser
 import ast
+from configparser import ConfigParser
 
 
 def load_config(config_file):
