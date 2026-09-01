@@ -50,6 +50,8 @@ El contenedor leerá las variables de entorno desde un archivo `.env` que debe e
 | `AZURE_ENDPOINT` | URL del endpoint de Azure OpenAI. |
 | `API_VERSION` | Versión de la API (ej. `2023-03-15-preview`). |
 | `TOKEN` | Token del bot de Telegram. |
+| `AZURE_MODEL` | Modelo a usar con Azure (p.ej., `gpt-4o`). |
+| `LOCAL_MODEL` | Modelo local cuando no se define AZURE_ENDPOINT (p.ej., `gemma-3-4b-it`). |
 
 Puedes usar el archivo `.env.example` como plantilla.
 

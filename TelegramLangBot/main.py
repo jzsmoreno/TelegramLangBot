@@ -14,7 +14,7 @@ from functools import wraps
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate, HumanMessagePromptTemplate
 from langchain.schema import SystemMessage
-from langchain_openai import AzureChatOpenAI
+from langchain_openai import AzureChatOpenAI, ChatOpenAI
 from dotenv import load_dotenv, find_dotenv
 from utils.config import load_config, parse_config
 
@@ -24,6 +24,7 @@ config = load_config("./TelegramLangBot/config.ini")
 config = parse_config(config)
 users_admin = config["security"]["users_admin"]
 
+
 def get_env(key: str) -> str:
     val = os.getenv(key)
     if not val:
@@ -31,10 +32,15 @@ def get_env(key: str) -> str:
         sys.exit(1)
     return val
 
-OPENAI_API_KEY = get_env("OPENAI_API_KEY")
-AZURE_ENDPOINT = get_env("AZURE_ENDPOINT")
-API_VERSION = get_env("API_VERSION")
+
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+AZURE_ENDPOINT = os.getenv("AZURE_ENDPOINT")
+API_VERSION = os.getenv("API_VERSION", "2023-03-15-preview")
 TOKEN = get_env("TOKEN")
+
+# Optional model names (defaults provided)
+AZURE_MODEL = os.getenv("AZURE_MODEL", "gpt-4o")
+LOCAL_MODEL = os.getenv("LOCAL_MODEL", "gemma-3-4b-it")
 
 welcome_message = "¡Hola! Soy tu asistente virtual especializado en People Analytics y Machine Learning. Estoy aquí para responder a tus preguntas sobre cómo estos conceptos pueden ayudar a las organizaciones a tomar decisiones más informadas sobre su talento y mejorar el rendimiento. Puedes preguntarme sobre métodos, herramientas, ejemplos de casos de uso, o cualquier otro tema relacionado. ¿Cómo puedo ayudarte hoy?"
 prompt = ChatPromptTemplate.from_template(
@@ -50,21 +56,34 @@ logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
 )
 
-llm = AzureChatOpenAI(
-    model="gpt-4o",
-    azure_endpoint=AZURE_ENDPOINT,
-    api_key=OPENAI_API_KEY,
-    api_version=API_VERSION,
-)
+if AZURE_ENDPOINT:
+    llm = AzureChatOpenAI(
+        model=AZURE_MODEL,
+        azure_endpoint=AZURE_ENDPOINT,
+        api_key=OPENAI_API_KEY,
+        api_version=API_VERSION,
+    )
+else:
+    # Fallback to local LLM via OpenAI-compatible API
+    llm = ChatOpenAI(
+        model=LOCAL_MODEL,
+        base_url="http://127.0.0.1:1234/v1",
+        api_key="lm-studio",
+        temperature=0.7,
+    )
 
 # Normal prompt chain
 chain = prompt | llm | StrOutputParser()
 
 # Chain‑of‑Thought (CoT) prompt – adds a step‑by‑step reasoning before the final answer.
-cot_prompt = ChatPromptTemplate.from_messages([
-    SystemMessage(content="You are a helpful assistant that always thinks step by step before answering."),
-    HumanMessagePromptTemplate.from_template("Question: {pregunta}\nAnswer step by step:"),
-])
+cot_prompt = ChatPromptTemplate.from_messages(
+    [
+        SystemMessage(
+            content="You are a helpful assistant that always thinks step by step before answering."
+        ),
+        HumanMessagePromptTemplate.from_template("Question: {pregunta}\nAnswer step by step:"),
+    ]
+)
 cot_chain = cot_prompt | llm | StrOutputParser()
 
 # Global flag to toggle CoT mode.
@@ -118,6 +137,7 @@ async def get_user_id(update: Update, context: CallbackContext) -> None:
     user_id = update.message.from_user.id
     await update.message.reply_text(f"Your user ID is: {user_id}")
 
+
 # Command to toggle Chain‑of‑Thought mode
 async def set_cot(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     global USE_COT
@@ -130,6 +150,7 @@ async def set_cot(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         await update.message.reply_text("Chain‑of‑Thought mode disabled.")
     else:
         await update.message.reply_text("Usage: /cot on | off")
+
 
 if __name__ == "__main__":
     application = ApplicationBuilder().token(TOKEN).build()
