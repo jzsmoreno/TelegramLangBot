@@ -7,3 +7,4 @@ services:
       dockerfile: Dockerfile
     stdin_open: true
     tty: true
+    env_file: .env

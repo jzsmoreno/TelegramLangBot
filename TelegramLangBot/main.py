@@ -1,5 +1,7 @@
 import logging
+import sys
 from telegram import Update
+import os
 from telegram.ext import (
     filters,
     CallbackContext,
@@ -14,7 +16,6 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_openai import AzureChatOpenAI
 from dotenv import load_dotenv, find_dotenv
 from utils.config import load_config, parse_config
-import os
 
 load_dotenv(find_dotenv())
 
@@ -22,10 +23,17 @@ config = load_config("./TelegramLangBot/config.ini")
 config = parse_config(config)
 users_admin = config["security"]["users_admin"]
 
-OPENAI_API_KEY = os.environ["OPENAI_API_KEY"]
-AZURE_ENDPOINT = os.environ["AZURE_ENDPOINT"]
-API_VERSION = os.environ["API_VERSION"]
-TOKEN = os.environ["TOKEN"]
+def get_env(key: str) -> str:
+    val = os.getenv(key)
+    if not val:
+        logging.error("Missing required env var %s", key)
+        sys.exit(1)
+    return val
+
+OPENAI_API_KEY = get_env("OPENAI_API_KEY")
+AZURE_ENDPOINT = get_env("AZURE_ENDPOINT")
+API_VERSION = get_env("API_VERSION")
+TOKEN = get_env("TOKEN")
 
 welcome_message = "¡Hola! Soy tu asistente virtual especializado en People Analytics y Machine Learning. Estoy aquí para responder a tus preguntas sobre cómo estos conceptos pueden ayudar a las organizaciones a tomar decisiones más informadas sobre su talento y mejorar el rendimiento. Puedes preguntarme sobre métodos, herramientas, ejemplos de casos de uso, o cualquier otro tema relacionado. ¿Cómo puedo ayudarte hoy?"
 prompt = ChatPromptTemplate.from_template(
@@ -56,8 +64,9 @@ def restricted(func):
     async def wrapped(update, context, *args, **kwargs):
         user_id = update.effective_user.id
         if user_id not in users_admin:
-            print(f"You cannot use this bot :(")
+            await update.message.reply_text("Lo siento, no tienes permiso para usar este bot.")
             return
+
         return await func(update, context, *args, **kwargs)
 
     return wrapped
@@ -73,9 +82,9 @@ async def hello(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text(f"¡Hola! {update.effective_user.first_name}")
 
 
-async def ask_chatgpt(question):
+async def ask_chatgpt(question: str) -> str:
     try:
-        return chain.invoke({"pregunta": question})
+        return await chain.ainvoke({"pregunta": question})
     except Exception as e:
         return f"An error occurred: {e}"
 

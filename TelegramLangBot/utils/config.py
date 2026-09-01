@@ -1,4 +1,5 @@
 from configparser import ConfigParser
+import ast
 
 
 def load_config(config_file):
@@ -40,6 +41,11 @@ def parse_config(config):
     for key, child in config.items():
         parsed_config[key] = {}
         for child_key, value in child.items():
-            parsed_config[key][child_key] = eval(value)
+            try:
+                parsed_value = ast.literal_eval(value)
+            except Exception:
+                # If the value cannot be evaluated, keep it as a string
+                parsed_value = value.strip()
+            parsed_config[key][child_key] = parsed_value
 
     return parsed_config
