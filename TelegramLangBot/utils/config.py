@@ -44,7 +44,6 @@ def parse_config(config):
             try:
                 parsed_value = ast.literal_eval(value)
             except Exception:
-                # If the value cannot be evaluated, keep it as a string
                 parsed_value = value.strip()
             parsed_config[key][child_key] = parsed_value
 

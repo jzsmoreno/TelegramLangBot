@@ -7,4 +7,6 @@ services:
       dockerfile: Dockerfile
     stdin_open: true
     tty: true
+    ports:
+      - "${MONITOR_PORT:-8080}:${MONITOR_PORT:-8080}"
     env_file: .env

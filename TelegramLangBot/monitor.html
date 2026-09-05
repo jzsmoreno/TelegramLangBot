@@ -1,0 +1,3190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TelegramLangBot — Live Monitor</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+<style>
+:root{
+  --bg:#070a0f;
+  --bg-soft:#0b1017;
+  --panel:#0f151e;
+  --panel-2:#121a24;
+  --panel-hover:#151f2b;
+  --border:#1d2733;
+  --border-soft:#17212c;
+
+  --text:#edf4fb;
+  --text-soft:#b8c5d3;
+  --muted:#718096;
+  --muted-2:#526174;
+
+  --accent:#4dabf7;
+  --accent-bright:#74c0fc;
+  --success:#51cf66;
+  --warning:#fcc419;
+  --danger:#ff6b6b;
+  --purple:#c084fc;
+  --pink:#f783ac;
+  --teal:#20c997;
+
+  --sidebar-w:248px;
+  --radius:12px;
+  --radius-sm:8px;
+  --shadow:0 12px 40px rgba(0,0,0,.22);
+}
+
+*{
+  margin:0;
+  padding:0;
+  box-sizing:border-box;
+}
+
+html{
+  scroll-behavior:smooth;
+}
+
+body{
+  font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  background:
+    radial-gradient(circle at 70% -10%,rgba(77,171,247,.08),transparent 32%),
+    radial-gradient(circle at 10% 100%,rgba(192,132,252,.045),transparent 30%),
+    var(--bg);
+  color:var(--text);
+  min-height:100vh;
+  font-size:13px;
+  line-height:1.5;
+}
+
+button,
+input{
+  font:inherit;
+}
+
+button{
+  border:0;
+}
+
+.layout{
+  display:flex;
+  min-height:100vh;
+}
+
+.sidebar{
+  width:var(--sidebar-w);
+  position:fixed;
+  inset:0 auto 0 0;
+  z-index:100;
+  display:flex;
+  flex-direction:column;
+  background:rgba(11,16,23,.92);
+  backdrop-filter:blur(18px);
+  border-right:1px solid var(--border);
+}
+
+.sidebar-brand{
+  padding:24px 20px 22px;
+  border-bottom:1px solid var(--border);
+}
+
+.brand-mark{
+  width:36px;
+  height:36px;
+  display:grid;
+  place-items:center;
+  border-radius:10px;
+  background:linear-gradient(135deg,var(--accent),#228be6);
+  color:#06101b;
+  font-size:18px;
+  font-weight:900;
+  box-shadow:0 8px 24px rgba(77,171,247,.2);
+}
+
+.brand-row{
+  display:flex;
+  align-items:center;
+  gap:11px;
+}
+
+.sidebar-brand h1{
+  font-size:15px;
+  line-height:1.2;
+  font-weight:750;
+  letter-spacing:-.02em;
+}
+
+.sidebar-brand h1 span{
+  color:var(--accent);
+}
+
+.sidebar-brand small{
+  display:block;
+  margin-top:4px;
+  color:var(--muted);
+  font-size:10px;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+}
+
+.sidebar-nav{
+  flex:1;
+  padding:20px 12px;
+}
+
+.nav-label{
+  color:var(--muted-2);
+  font-size:9px;
+  font-weight:700;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+  padding:0 11px 8px;
+}
+
+.sidebar-link{
+  position:relative;
+  display:flex;
+  align-items:center;
+  gap:12px;
+  width:100%;
+  padding:11px 12px;
+  margin-bottom:4px;
+  border-radius:9px;
+  color:var(--muted);
+  cursor:pointer;
+  font-size:12px;
+  font-weight:550;
+  transition:.18s ease;
+}
+
+.sidebar-link:hover{
+  color:var(--text-soft);
+  background:rgba(255,255,255,.035);
+}
+
+.sidebar-link.active{
+  color:var(--accent-bright);
+  background:linear-gradient(90deg,rgba(77,171,247,.13),rgba(77,171,247,.045));
+}
+
+.sidebar-link.active:before{
+  content:"";
+  position:absolute;
+  left:-12px;
+  width:3px;
+  height:22px;
+  border-radius:0 3px 3px 0;
+  background:var(--accent);
+  box-shadow:0 0 12px rgba(77,171,247,.45);
+}
+
+.sidebar-link .ico{
+  width:20px;
+  height:20px;
+  display:grid;
+  place-items:center;
+  border-radius:6px;
+  background:rgba(255,255,255,.035);
+  font-size:12px;
+}
+
+.sidebar-link.active .ico{
+  background:rgba(77,171,247,.12);
+}
+
+.sidebar-footer{
+  padding:16px;
+  border-top:1px solid var(--border);
+}
+
+.connection-card{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:11px 12px;
+  border:1px solid var(--border);
+  border-radius:9px;
+  background:rgba(255,255,255,.018);
+}
+
+.connection-dot{
+  position:relative;
+  width:8px;
+  height:8px;
+  flex:none;
+  border-radius:50%;
+  background:var(--success);
+  box-shadow:0 0 0 4px rgba(81,207,102,.08);
+  animation:pulse 2s infinite;
+}
+
+.connection-dot.off{
+  background:var(--danger);
+  box-shadow:0 0 0 4px rgba(255,107,107,.08);
+  animation:none;
+}
+
+.connection-info{
+  min-width:0;
+}
+
+.connection-title{
+  color:var(--text-soft);
+  font-size:11px;
+  font-weight:600;
+}
+
+.connection-sub{
+  color:var(--muted);
+  font-size:9px;
+  margin-top:1px;
+}
+
+@keyframes pulse{
+  0%,100%{opacity:1}
+  50%{opacity:.35}
+}
+
+.main{
+  width:calc(100% - var(--sidebar-w));
+  margin-left:var(--sidebar-w);
+  padding:28px 32px 50px;
+}
+
+.topbar{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  min-height:48px;
+  margin-bottom:24px;
+}
+
+.page-heading{
+  flex:1;
+}
+
+.page-heading h2{
+  font-size:20px;
+  letter-spacing:-.035em;
+  font-weight:720;
+}
+
+.page-heading p{
+  color:var(--muted);
+  font-size:11px;
+  margin-top:3px;
+}
+
+.last-event{
+  color:var(--muted);
+  font-size:10px;
+  padding-right:8px;
+}
+
+.toolbar{
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+
+.input{
+  width:120px;
+  height:34px;
+  padding:0 10px;
+  color:var(--text);
+  background:var(--panel);
+  border:1px solid var(--border);
+  border-radius:7px;
+  outline:none;
+  font-size:11px;
+  transition:.18s;
+}
+
+.input:focus{
+  border-color:rgba(77,171,247,.6);
+  box-shadow:0 0 0 3px rgba(77,171,247,.08);
+}
+
+.btn{
+  height:34px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:6px;
+  padding:0 12px;
+  border:1px solid var(--border);
+  border-radius:7px;
+  color:var(--text-soft);
+  background:var(--panel);
+  cursor:pointer;
+  font-size:10px;
+  font-weight:600;
+  transition:.18s ease;
+}
+
+.btn:hover{
+  color:var(--text);
+  background:var(--panel-hover);
+  border-color:#2b3948;
+  transform:translateY(-1px);
+}
+
+.btn:disabled{
+  opacity:.45;
+  cursor:not-allowed;
+  transform:none;
+}
+
+.btn.accent{
+  color:#06101b;
+  background:var(--accent);
+  border-color:var(--accent);
+}
+
+.btn.accent:hover{
+  background:var(--accent-bright);
+  border-color:var(--accent-bright);
+}
+
+.btn.danger{
+  color:var(--danger);
+  background:rgba(255,107,107,.06);
+  border-color:rgba(255,107,107,.18);
+}
+
+.btn.danger:hover{
+  background:rgba(255,107,107,.13);
+  border-color:rgba(255,107,107,.3);
+}
+
+.kpi-grid{
+  display:grid;
+  grid-template-columns:repeat(5,1fr);
+  gap:12px;
+  margin-bottom:18px;
+}
+
+.kpi{
+  position:relative;
+  overflow:hidden;
+  min-height:108px;
+  padding:17px;
+  background:
+    linear-gradient(145deg,rgba(255,255,255,.025),transparent 70%),
+    var(--panel);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  box-shadow:0 4px 20px rgba(0,0,0,.08);
+  transition:.2s ease;
+}
+
+.kpi:hover{
+  border-color:#2a3745;
+  transform:translateY(-1px);
+}
+
+.kpi:after{
+  content:"";
+  position:absolute;
+  width:90px;
+  height:90px;
+  right:-35px;
+  bottom:-45px;
+  border-radius:50%;
+  background:var(--kpi-color);
+  opacity:.06;
+  filter:blur(4px);
+}
+
+.kpi.accent{--kpi-color:var(--accent)}
+.kpi.success{--kpi-color:var(--success)}
+.kpi.warning{--kpi-color:var(--warning)}
+.kpi.danger{--kpi-color:var(--danger)}
+
+.kpi-top{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+}
+
+.kpi-label{
+  color:var(--muted);
+  font-size:9px;
+  font-weight:700;
+  letter-spacing:.1em;
+  text-transform:uppercase;
+}
+
+.kpi-icon{
+  width:25px;
+  height:25px;
+  display:grid;
+  place-items:center;
+  border-radius:7px;
+  color:var(--kpi-color);
+  background:color-mix(in srgb,var(--kpi-color) 10%,transparent);
+  font-size:11px;
+}
+
+.kpi-value{
+  margin-top:12px;
+  color:var(--text);
+  font-size:24px;
+  line-height:1;
+  font-weight:750;
+  letter-spacing:-.04em;
+}
+
+.kpi-sub{
+  color:var(--muted);
+  font-size:9px;
+  margin-top:7px;
+}
+
+.card{
+  overflow:hidden;
+  margin-bottom:14px;
+  background:rgba(15,21,30,.9);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  box-shadow:0 5px 25px rgba(0,0,0,.08);
+}
+
+.card-header{
+  min-height:50px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding:0 17px;
+  border-bottom:1px solid var(--border);
+  background:rgba(255,255,255,.012);
+}
+
+.card-header h2{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  color:var(--text-soft);
+  font-size:10px;
+  font-weight:700;
+  letter-spacing:.09em;
+  text-transform:uppercase;
+}
+
+.card-header h2:before{
+  content:"";
+  width:4px;
+  height:13px;
+  border-radius:2px;
+  background:var(--accent);
+  box-shadow:0 0 8px rgba(77,171,247,.3);
+}
+
+.card-body{
+  padding:17px;
+}
+
+.grid2{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:14px;
+}
+
+.grid3{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:14px;
+}
+
+.tab-content{
+  display:none;
+}
+
+.tab-content.active{
+  display:block;
+  animation:fadeIn .2s ease;
+}
+
+@keyframes fadeIn{
+  from{opacity:0;transform:translateY(3px)}
+  to{opacity:1;transform:none}
+}
+
+.chart-wrap{
+  position:relative;
+  width:100%;
+  height:250px;
+}
+
+.chart-wrap.h300{
+  height:300px;
+}
+
+.chart-wrap.small{
+  height:220px;
+}
+
+.dashboard-charts{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:14px;
+}
+
+.chart-panel{
+  min-width:0;
+}
+
+.chart-title{
+  color:var(--muted);
+  font-size:9px;
+  text-transform:uppercase;
+  letter-spacing:.08em;
+  margin-bottom:8px;
+}
+
+.agent-details{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:7px;
+  margin-top:12px;
+}
+
+.agent-detail{
+  padding:8px 9px;
+  background:rgba(255,255,255,.018);
+  border:1px solid var(--border-soft);
+  border-radius:7px;
+}
+
+.agent-detail-name{
+  color:var(--muted);
+  font-size:9px;
+}
+
+.agent-detail-score{
+  margin-top:2px;
+  font-size:10px;
+  font-weight:700;
+}
+
+.agent-detail-feedback{
+  color:var(--muted-2);
+  font-size:8px;
+  line-height:1.35;
+  margin-top:2px;
+}
+
+.agent-pipeline{
+  display:flex;
+  flex-direction:column;
+  gap:7px;
+  max-height:500px;
+  overflow-y:auto;
+}
+
+.agent-step{
+  position:relative;
+  padding:12px 13px;
+  background:rgba(255,255,255,.014);
+  border:1px solid var(--border);
+  border-radius:9px;
+  animation:slideIn .25s ease;
+}
+
+.agent-step:hover{
+  background:rgba(255,255,255,.025);
+  border-color:#2a3745;
+}
+
+.agent-step-header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+}
+
+.agent-name{
+  color:var(--text-soft);
+  font-size:11px;
+  font-weight:650;
+}
+
+.agent-score{
+  display:inline-flex;
+  align-items:center;
+  padding:3px 7px;
+  border-radius:5px;
+  font-size:8px;
+  font-weight:750;
+  letter-spacing:.04em;
+}
+
+.agent-score.PASS{
+  color:var(--success);
+  background:rgba(81,207,102,.1);
+  border:1px solid rgba(81,207,102,.14);
+}
+
+.agent-score.NEEDS_IMPROVEMENT{
+  color:var(--warning);
+  background:rgba(252,196,25,.1);
+  border:1px solid rgba(252,196,25,.14);
+}
+
+.agent-score.FAIL{
+  color:var(--danger);
+  background:rgba(255,107,107,.1);
+  border:1px solid rgba(255,107,107,.14);
+}
+
+.agent-feedback{
+  color:var(--muted);
+  font-size:10px;
+  line-height:1.45;
+  margin-top:7px;
+}
+
+.agent-fix{
+  margin-top:8px;
+  padding:8px 10px;
+  color:var(--text-soft);
+  background:rgba(77,171,247,.045);
+  border-left:2px solid var(--accent);
+  border-radius:0 6px 6px 0;
+  font-size:9px;
+  line-height:1.4;
+}
+
+.agent-fix strong{
+  display:block;
+  color:var(--accent);
+  font-size:8px;
+  letter-spacing:.06em;
+  text-transform:uppercase;
+  margin-bottom:3px;
+}
+
+@keyframes slideIn{
+  from{opacity:0;transform:translateX(-6px)}
+  to{opacity:1;transform:none}
+}
+
+.log-list{
+  max-height:360px;
+  overflow-y:auto;
+  font-family:"JetBrains Mono","Cascadia Code","SFMono-Regular",Consolas,monospace;
+  font-size:10px;
+}
+
+.log-entry{
+  display:flex;
+  align-items:flex-start;
+  gap:8px;
+  padding:8px 12px;
+  border-bottom:1px solid rgba(29,39,51,.55);
+  transition:.12s;
+}
+
+.log-entry:hover{
+  background:rgba(77,171,247,.025);
+}
+
+.log-time{
+  flex:none;
+  min-width:65px;
+  color:var(--muted-2);
+  font-size:8px;
+}
+
+.log-badge{
+  flex:none;
+  min-width:42px;
+  padding:2px 5px;
+  border-radius:4px;
+  text-align:center;
+  font-size:7px;
+  font-weight:750;
+  line-height:1.4;
+  letter-spacing:.04em;
+}
+
+.log-badge.req{
+  color:var(--accent);
+  background:rgba(77,171,247,.1);
+}
+
+.log-badge.resp{
+  color:var(--success);
+  background:rgba(81,207,102,.1);
+}
+
+.log-badge.rev{
+  color:var(--warning);
+  background:rgba(252,196,25,.1);
+}
+
+.log-badge.err{
+  color:var(--danger);
+  background:rgba(255,107,107,.1);
+}
+
+.log-badge.clr{
+  color:var(--muted);
+  background:rgba(113,128,150,.1);
+}
+
+.log-badge.tkn{
+  color:var(--pink);
+  background:rgba(247,131,172,.1);
+}
+
+.log-badge.ast{
+  color:var(--teal);
+  background:rgba(32,201,151,.1);
+}
+
+.log-msg{
+  flex:1;
+  min-width:0;
+  color:var(--text-soft);
+  word-break:break-word;
+  line-height:1.4;
+}
+
+.log-entry.llm{
+  display:block;
+  padding:10px 13px;
+  border-left:2px solid var(--purple);
+}
+
+.log-header{
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+
+.log-tag{
+  padding:2px 5px;
+  border-radius:4px;
+  font-size:7px;
+  font-weight:750;
+  letter-spacing:.06em;
+}
+
+.llm-tag{
+  color:var(--purple);
+  background:rgba(192,132,252,.1);
+}
+
+.llm .agent-name{
+  flex:1;
+}
+
+.llm-meta{
+  display:flex;
+  flex-wrap:wrap;
+  gap:12px;
+  margin-top:6px;
+  color:var(--muted);
+  font-size:8px;
+}
+
+.user-table-wrap{
+  width:100%;
+  overflow-x:auto;
+}
+
+.user-table{
+  width:100%;
+  min-width:700px;
+  border-collapse:collapse;
+  font-size:10px;
+}
+
+.user-table th{
+  color:var(--muted);
+  background:rgba(255,255,255,.015);
+  padding:10px 12px;
+  border-bottom:1px solid var(--border);
+  text-align:left;
+  font-size:8px;
+  font-weight:700;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  white-space:nowrap;
+}
+
+.user-table td{
+  padding:10px 12px;
+  color:var(--text-soft);
+  border-bottom:1px solid rgba(29,39,51,.55);
+  vertical-align:middle;
+}
+
+.user-table tbody tr{
+  transition:.12s;
+}
+
+.user-table tbody tr:hover{
+  background:rgba(77,171,247,.025);
+}
+
+.user-id-cell{
+  color:var(--accent);
+  font-family:"JetBrains Mono",monospace;
+  font-weight:650;
+}
+
+.status-badge{
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+  padding:3px 7px;
+  border-radius:5px;
+  font-size:8px;
+  font-weight:700;
+}
+
+.status-badge:before{
+  content:"";
+  width:5px;
+  height:5px;
+  border-radius:50%;
+  background:currentColor;
+}
+
+.status-badge.active{
+  color:var(--success);
+  background:rgba(81,207,102,.09);
+}
+
+.status-badge.blocked{
+  color:var(--danger);
+  background:rgba(255,107,107,.09);
+}
+
+.token-bar{
+  width:80px;
+  height:4px;
+  overflow:hidden;
+  background:#1b2530;
+  border-radius:4px;
+}
+
+.token-bar-fill{
+  height:100%;
+  border-radius:4px;
+  transition:width .4s ease;
+}
+
+.token-bar-fill.low{background:var(--success)}
+.token-bar-fill.med{background:var(--warning)}
+.token-bar-fill.high{background:var(--danger)}
+
+.empty-state{
+  padding:38px 20px!important;
+  color:var(--muted)!important;
+  text-align:center!important;
+  font-size:10px!important;
+}
+
+.pipeline-status{
+  color:var(--muted);
+  font-size:9px;
+}
+
+.modal-overlay{
+  position:fixed;
+  inset:0;
+  z-index:300;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  padding:20px;
+  background:rgba(0,0,0,.72);
+  backdrop-filter:blur(7px);
+}
+
+.modal-overlay.show{
+  display:flex;
+  animation:fadeIn .15s ease;
+}
+
+.modal{
+  width:100%;
+  max-width:430px;
+  padding:22px;
+  background:#101720;
+  border:1px solid #293542;
+  border-radius:14px;
+  box-shadow:var(--shadow);
+}
+
+.modal-header{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  margin-bottom:20px;
+}
+
+.modal h3{
+  color:var(--text);
+  font-size:15px;
+  font-weight:700;
+}
+
+.modal-subtitle{
+  color:var(--muted);
+  font-size:9px;
+  margin-top:3px;
+}
+
+.modal-close{
+  width:28px;
+  height:28px;
+  display:grid;
+  place-items:center;
+  border-radius:6px;
+  color:var(--muted);
+  background:rgba(255,255,255,.04);
+  cursor:pointer;
+}
+
+.modal-close:hover{
+  color:var(--text);
+  background:rgba(255,255,255,.08);
+}
+
+.modal label{
+  display:block;
+  color:var(--muted);
+  font-size:9px;
+  font-weight:600;
+  margin-bottom:6px;
+}
+
+.modal input[type="text"],
+.modal input[type="number"]{
+  width:100%;
+  height:36px;
+  padding:0 11px;
+  margin-bottom:15px;
+  color:var(--text);
+  background:var(--bg);
+  border:1px solid var(--border);
+  border-radius:7px;
+  outline:none;
+  font-size:11px;
+}
+
+.modal input:focus{
+  border-color:rgba(77,171,247,.6);
+}
+
+.modal input[readonly]{
+  color:var(--muted);
+}
+
+.checkbox-row{
+  display:flex;
+  align-items:center;
+  gap:9px;
+  padding:10px;
+  margin-top:2px;
+  margin-bottom:4px;
+  border:1px solid var(--border);
+  border-radius:7px;
+  background:rgba(255,255,255,.015);
+}
+
+.checkbox-row input{
+  width:14px;
+  height:14px;
+  accent-color:var(--danger);
+}
+
+.checkbox-row span{
+  color:var(--text-soft);
+  font-size:10px;
+}
+
+.modal-actions{
+  display:flex;
+  justify-content:flex-end;
+  gap:7px;
+  margin-top:22px;
+  padding-top:16px;
+  border-top:1px solid var(--border);
+}
+
+::-webkit-scrollbar{
+  width:5px;
+  height:5px;
+}
+
+::-webkit-scrollbar-track{
+  background:transparent;
+}
+
+::-webkit-scrollbar-thumb{
+  background:#263241;
+  border-radius:5px;
+}
+
+::-webkit-scrollbar-thumb:hover{
+  background:#344355;
+}
+
+@media(max-width:1200px){
+  .kpi-grid{
+    grid-template-columns:repeat(3,1fr);
+  }
+
+  .grid2{
+    grid-template-columns:1fr;
+  }
+}
+
+@media(max-width:900px){
+  :root{
+    --sidebar-w:70px;
+  }
+
+  .sidebar-brand{
+    padding:18px 0;
+  }
+
+  .brand-row{
+    justify-content:center;
+  }
+
+  .sidebar-brand h1,
+  .sidebar-brand small,
+  .nav-label,
+  .sidebar-link:not(.active) span:not(.ico),
+  .sidebar-link span:not(.ico){
+    display:none;
+  }
+
+  .sidebar-nav{
+    padding:15px 9px;
+  }
+
+  .sidebar-link{
+    justify-content:center;
+    padding:11px;
+  }
+
+  .sidebar-link.active:before{
+    left:-9px;
+  }
+
+  .sidebar-footer{
+    padding:10px;
+  }
+
+  .connection-card{
+    justify-content:center;
+    padding:11px 0;
+  }
+
+  .connection-info{
+    display:none;
+  }
+
+  .main{
+    padding:22px 20px 40px;
+  }
+
+  .toolbar{
+    flex-wrap:wrap;
+    justify-content:flex-end;
+  }
+
+  .last-event{
+    display:none;
+  }
+}
+
+@media(max-width:650px){
+  :root{
+    --sidebar-w:0px;
+  }
+
+  .sidebar{
+    position:fixed;
+    top:auto;
+    right:0;
+    bottom:0;
+    left:0;
+    width:100%;
+    height:62px;
+    flex-direction:row;
+    border-top:1px solid var(--border);
+    border-right:0;
+  }
+
+  .sidebar-brand,
+  .sidebar-footer{
+    display:none;
+  }
+
+  .sidebar-nav{
+    width:100%;
+    display:flex;
+    justify-content:space-around;
+    align-items:center;
+    padding:5px;
+  }
+
+  .sidebar-link{
+    width:auto;
+    flex:1;
+    height:50px;
+    margin:0;
+    justify-content:center;
+    border-radius:8px;
+  }
+
+  .sidebar-link span:not(.ico){
+    display:none;
+  }
+
+  .sidebar-link.active:before{
+    left:50%;
+    top:auto;
+    bottom:2px;
+    width:20px;
+    height:2px;
+    transform:translateX(-50%);
+    border-radius:2px;
+  }
+
+  .main{
+    padding:18px 14px 80px;
+  }
+
+  .topbar{
+    align-items:flex-start;
+    flex-direction:column;
+  }
+
+  .toolbar{
+    width:100%;
+    justify-content:flex-start;
+  }
+
+  .kpi-grid{
+    grid-template-columns:1fr 1fr;
+  }
+
+  .kpi{
+    min-height:100px;
+  }
+
+  .kpi-value{
+    font-size:21px;
+  }
+
+  .dashboard-charts{
+    grid-template-columns:1fr;
+  }
+
+  .agent-details{
+    grid-template-columns:1fr;
+  }
+
+  .chart-wrap{
+    height:220px;
+  }
+
+  .toolbar .input{
+    flex:1;
+    width:auto;
+  }
+}
+
+@media(max-width:400px){
+  .kpi-grid{
+    grid-template-columns:1fr;
+  }
+
+  .toolbar{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+  }
+
+  .toolbar .input{
+    grid-column:1/-1;
+    width:100%;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<div class="layout">
+
+<aside class="sidebar">
+
+  <div class="sidebar-brand">
+    <div class="brand-row">
+      <div class="brand-mark">◆</div>
+      <div>
+        <h1>Telegram<span>LangBot</span></h1>
+        <small>Live Monitor</small>
+      </div>
+    </div>
+  </div>
+
+  <nav class="sidebar-nav">
+    <div class="nav-label">Monitor</div>
+
+    <div class="sidebar-link active" data-tab="dashboard">
+      <span class="ico">◉</span>
+      <span>Dashboard</span>
+    </div>
+
+    <div class="sidebar-link" data-tab="agents">
+      <span class="ico">✦</span>
+      <span>Agents Pipeline</span>
+    </div>
+
+    <div class="sidebar-link" data-tab="tokens">
+      <span class="ico">◈</span>
+      <span>Tokens &amp; Performance</span>
+    </div>
+
+    <div class="sidebar-link" data-tab="users">
+      <span class="ico">♙</span>
+      <span>Users</span>
+    </div>
+  </nav>
+
+  <div class="sidebar-footer">
+    <div class="connection-card">
+      <div class="connection-dot off" id="statusDot"></div>
+      <div class="connection-info">
+        <div class="connection-title" id="statusText">Connecting</div>
+        <div class="connection-sub">Event stream</div>
+      </div>
+    </div>
+  </div>
+
+</aside>
+
+<main class="main">
+
+  <header class="topbar">
+
+    <div class="page-heading">
+      <h2 id="pageTitle">Dashboard</h2>
+      <p>Real-time TelegramLangBot system telemetry</p>
+    </div>
+
+    <div class="last-event" id="lastEvent"></div>
+
+    <div class="toolbar">
+      <button class="btn" onclick="downloadHistory()">↓ Export All</button>
+      <input
+        class="input"
+        type="number"
+        id="exportUserId"
+        placeholder="User ID"
+      >
+      <button class="btn" onclick="exportUserData()">↓ Export User</button>
+    </div>
+
+  </header>
+
+  <section class="kpi-grid">
+
+    <div class="kpi accent">
+      <div class="kpi-top">
+        <div class="kpi-label">Requests</div>
+        <div class="kpi-icon">↗</div>
+      </div>
+      <div class="kpi-value" id="totalRequests">0</div>
+      <div class="kpi-sub">Incoming messages</div>
+    </div>
+
+    <div class="kpi success">
+      <div class="kpi-top">
+        <div class="kpi-label">Responses</div>
+        <div class="kpi-icon">✓</div>
+      </div>
+      <div class="kpi-value" id="totalResponses">0</div>
+      <div class="kpi-sub">Successful replies</div>
+    </div>
+
+    <div class="kpi danger">
+      <div class="kpi-top">
+        <div class="kpi-label">Errors</div>
+        <div class="kpi-icon">!</div>
+      </div>
+      <div class="kpi-value" id="totalErrors">0</div>
+      <div class="kpi-sub">Detected failures</div>
+    </div>
+
+    <div class="kpi warning">
+      <div class="kpi-top">
+        <div class="kpi-label">Active Users</div>
+        <div class="kpi-icon">●</div>
+      </div>
+      <div class="kpi-value" id="activeUsers">0</div>
+      <div class="kpi-sub">Users seen this session</div>
+    </div>
+
+    <div class="kpi accent">
+      <div class="kpi-top">
+        <div class="kpi-label">Avg Tokens/s</div>
+        <div class="kpi-icon">ϟ</div>
+      </div>
+      <div class="kpi-value" id="avgTps">--</div>
+      <div class="kpi-sub" id="uptime">--</div>
+    </div>
+
+  </section>
+
+  <div class="tab-content active" id="tab-dashboard">
+
+    <div class="grid2">
+
+      <div class="card">
+        <div class="card-header">
+          <h2>Agent Performance</h2>
+        </div>
+
+        <div class="card-body">
+          <div class="chart-wrap">
+            <canvas id="agentRadar"></canvas>
+          </div>
+
+          <div class="agent-details" id="agentDetails"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h2>Score Distribution &amp; Throughput</h2>
+        </div>
+
+        <div class="card-body">
+          <div class="dashboard-charts">
+
+            <div class="chart-panel">
+              <div class="chart-title">Review scores</div>
+              <div class="chart-wrap small">
+                <canvas id="scoreDonut"></canvas>
+              </div>
+            </div>
+
+            <div class="chart-panel">
+              <div class="chart-title">Tokens / second</div>
+              <div class="chart-wrap small">
+                <canvas id="tpsChart"></canvas>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <h2>Live Event Log</h2>
+      </div>
+
+      <div class="card-body" style="padding:0">
+        <div class="log-list" id="logList"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="tab-content" id="tab-agents">
+
+    <div class="card">
+
+      <div class="card-header">
+        <h2>Agent Review Pipeline</h2>
+        <span class="pipeline-status" id="agentPipelineStatus"></span>
+      </div>
+
+      <div class="card-body">
+        <div class="agent-pipeline" id="agentPipeline">
+          <div class="empty-state">Awaiting next request for agent review pipeline...</div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="card">
+
+      <div class="card-header">
+        <h2>Agent History</h2>
+      </div>
+
+      <div class="card-body" style="padding:0">
+        <div class="log-list" id="agentHistory" style="max-height:360px"></div>
+      </div>
+
+    </div>
+
+    <div class="card">
+
+      <div class="card-header">
+        <h2>LLM Review Activity</h2>
+        <span class="pipeline-status" id="llmReviewCount">0 reviews</span>
+      </div>
+
+      <div class="card-body" style="padding:0">
+        <div class="log-list" id="llmReviewLog" style="max-height:320px"></div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <div class="tab-content" id="tab-tokens">
+
+    <div class="grid2">
+
+      <div class="card">
+
+        <div class="card-header">
+          <h2>Token Usage Per User</h2>
+        </div>
+
+        <div class="card-body">
+          <div class="user-table-wrap">
+
+            <table class="user-table" id="tokenTable">
+
+              <thead>
+                <tr>
+                  <th>User ID</th>
+                  <th>Total Tokens</th>
+                  <th>Requests</th>
+                  <th>Prompt</th>
+                  <th>Completion</th>
+                  <th>Usage</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                <tr>
+                  <td colspan="6" class="empty-state">No token data yet</td>
+                </tr>
+              </tbody>
+
+            </table>
+
+          </div>
+        </div>
+
+      </div>
+
+      <div class="card">
+
+        <div class="card-header">
+          <h2>Tokens vs Time</h2>
+        </div>
+
+        <div class="card-body">
+          <div class="chart-wrap h300">
+            <canvas id="tokenTimeChart"></canvas>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+    <div class="card">
+
+      <div class="card-header">
+        <h2>Token Event Log</h2>
+      </div>
+
+      <div class="card-body" style="padding:0">
+        <div class="log-list" id="tokenLog" style="max-height:280px"></div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <div class="tab-content" id="tab-users">
+
+    <div class="card">
+
+      <div class="card-header">
+        <h2>Active Users &amp; Restrictions</h2>
+        <button class="btn" onclick="loadRestrictions()">↻ Refresh</button>
+      </div>
+
+      <div class="card-body">
+
+        <div class="user-table-wrap">
+
+          <table class="user-table" id="userTable">
+
+            <thead>
+              <tr>
+                <th>User ID</th>
+                <th>Last Message</th>
+                <th>Msgs</th>
+                <th>Tokens</th>
+                <th>Status</th>
+                <th>Limit</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              <tr>
+                <td colspan="7" class="empty-state">No user activity yet</td>
+              </tr>
+            </tbody>
+
+          </table>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+</main>
+
+</div>
+
+<div class="modal-overlay" id="modal">
+
+  <div class="modal">
+
+    <div class="modal-header">
+      <div>
+        <h3>User Settings</h3>
+        <div class="modal-subtitle">Manage access and token limits</div>
+      </div>
+
+      <button class="modal-close" onclick="closeModal()">×</button>
+    </div>
+
+    <label>User ID</label>
+    <input type="text" id="modalUserId" readonly>
+
+    <label>Token Limit</label>
+    <input
+      type="number"
+      id="modalTokenLimit"
+      min="0"
+      step="1000"
+      value="0"
+      placeholder="0 = unlimited"
+    >
+
+    <label>Access Control</label>
+
+    <div class="checkbox-row">
+      <input type="checkbox" id="modalBlocked">
+      <span>Block all requests from this user</span>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn danger" onclick="removeUser()">Remove</button>
+      <button class="btn accent" onclick="saveUser()">Save Changes</button>
+    </div>
+
+  </div>
+
+</div>
+
+<script>
+var MAX_LOG=250;
+
+var stats={
+  requests:0,
+  responses:0,
+  errors:0,
+  users:new Map()
+};
+
+var scoreCounts={
+  PASS:0,
+  NEEDS_IMPROVEMENT:0,
+  FAIL:0
+};
+
+var startTime=Date.now();
+var tpsHistory=[];
+var restrictions={};
+var tokenUsage={};
+
+var agentRadar=null;
+var scoreDonut=null;
+var tpsChart=null;
+var tokenTimeChart=null;
+
+var llmReviewCount=0;
+var es=null;
+var reconnectTimer=null;
+var reconnectDelay=1000;
+
+function q(id){
+  return document.getElementById(id);
+}
+
+function safeJson(data){
+  try{
+    return JSON.parse(data);
+  }catch(err){
+    console.error("Invalid SSE JSON:",err);
+    return null;
+  }
+}
+
+function setConnectionStatus(connected){
+  q("statusDot").classList.toggle("off",!connected);
+  q("statusText").textContent=connected?"Connected":"Disconnected";
+}
+
+function initCharts(){
+  try{
+    if(typeof Chart==="undefined"){
+      throw new Error("Chart.js not loaded");
+    }
+
+    Chart.defaults.color="#718096";
+    Chart.defaults.font.family='Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif';
+    Chart.defaults.font.size=9;
+
+    agentRadar=new Chart(q("agentRadar"),{
+      type:"radar",
+      data:{
+        labels:["Clarity","Helpfulness","Tone","Safety"],
+        datasets:[{
+          label:"Score",
+          data:[0,0,0,0],
+          backgroundColor:"rgba(77,171,247,.11)",
+          borderColor:"#4dabf7",
+          borderWidth:2,
+          pointBackgroundColor:"#74c0fc",
+          pointBorderColor:"#0f151e",
+          pointBorderWidth:2,
+          pointRadius:4,
+          pointHoverRadius:6
+        }]
+      },
+      options:{
+        responsive:true,
+        maintainAspectRatio:false,
+        scales:{
+          r:{
+            beginAtZero:true,
+            max:100,
+            ticks:{
+              stepSize:25,
+              color:"#526174",
+              backdropColor:"transparent",
+              font:{size:8}
+            },
+            grid:{
+              color:"rgba(113,128,150,.15)"
+            },
+            angleLines:{
+              color:"rgba(113,128,150,.12)"
+            },
+            pointLabels:{
+              color:"#b8c5d3",
+              font:{
+                size:9,
+                weight:"600"
+              }
+            }
+          }
+        },
+        plugins:{
+          legend:{display:false},
+          tooltip:{
+            backgroundColor:"#101720",
+            borderColor:"#293542",
+            borderWidth:1,
+            titleColor:"#edf4fb",
+            bodyColor:"#b8c5d3",
+            padding:9
+          }
+        }
+      }
+    });
+
+    scoreDonut=new Chart(q("scoreDonut"),{
+      type:"doughnut",
+      data:{
+        labels:["PASS","NEEDS IMPROVEMENT","FAIL"],
+        datasets:[{
+          data:[0,0,0],
+          backgroundColor:[
+            "rgba(81,207,102,.72)",
+            "rgba(252,196,25,.72)",
+            "rgba(255,107,107,.72)"
+          ],
+          borderColor:[
+            "#51cf66",
+            "#fcc419",
+            "#ff6b6b"
+          ],
+          borderWidth:1,
+          hoverOffset:4
+        }]
+      },
+      options:{
+        responsive:true,
+        maintainAspectRatio:false,
+        cutout:"72%",
+        plugins:{
+          legend:{
+            position:"bottom",
+            labels:{
+              color:"#718096",
+              font:{size:8,weight:"600"},
+              boxWidth:8,
+              boxHeight:8,
+              padding:12
+            }
+          }
+        }
+      }
+    });
+
+    tpsChart=new Chart(q("tpsChart"),{
+      type:"line",
+      data:{
+        labels:[],
+        datasets:[{
+          label:"Tokens/s",
+          data:[],
+          borderColor:"#f783ac",
+          backgroundColor:"rgba(247,131,172,.08)",
+          fill:true,
+          tension:.35,
+          borderWidth:2,
+          pointRadius:1.5,
+          pointBackgroundColor:"#f783ac"
+        }]
+      },
+      options:{
+        responsive:true,
+        maintainAspectRatio:false,
+        scales:{
+          x:{
+            display:false,
+            grid:{display:false}
+          },
+          y:{
+            beginAtZero:true,
+            border:{display:false},
+            ticks:{
+              color:"#526174",
+              font:{size:8}
+            },
+            grid:{
+              color:"rgba(113,128,150,.1)"
+            }
+          }
+        },
+        plugins:{
+          legend:{display:false},
+          tooltip:{
+            backgroundColor:"#101720",
+            borderColor:"#293542",
+            borderWidth:1,
+            padding:8
+          }
+        }
+      }
+    });
+
+    tokenTimeChart=new Chart(q("tokenTimeChart"),{
+      type:"line",
+      data:{
+        labels:[],
+        datasets:[
+          {
+            label:"Total",
+            data:[],
+            borderColor:"#4dabf7",
+            backgroundColor:"rgba(77,171,247,.06)",
+            fill:true,
+            tension:.25,
+            borderWidth:2,
+            pointRadius:1
+          },
+          {
+            label:"Prompt",
+            data:[],
+            borderColor:"#51cf66",
+            fill:false,
+            tension:.25,
+            borderWidth:1.5,
+            pointRadius:1
+          },
+          {
+            label:"Completion",
+            data:[],
+            borderColor:"#fcc419",
+            fill:false,
+            tension:.25,
+            borderWidth:1.5,
+            pointRadius:1
+          }
+        ]
+      },
+      options:{
+        responsive:true,
+        maintainAspectRatio:false,
+        interaction:{
+          mode:"index",
+          intersect:false
+        },
+        scales:{
+          x:{
+            display:false,
+            grid:{display:false}
+          },
+          y:{
+            beginAtZero:true,
+            border:{display:false},
+            ticks:{
+              color:"#526174",
+              font:{size:8}
+            },
+            grid:{
+              color:"rgba(113,128,150,.1)"
+            }
+          }
+        },
+        plugins:{
+          legend:{
+            labels:{
+              color:"#718096",
+              font:{size:8},
+              boxWidth:9,
+              padding:12
+            }
+          },
+          tooltip:{
+            backgroundColor:"#101720",
+            borderColor:"#293542",
+            borderWidth:1,
+            padding:9
+          }
+        }
+      }
+    });
+
+  }catch(err){
+    console.warn("Chart initialization failed:",err);
+
+    agentRadar={
+      update:function(){},
+      data:{datasets:[{data:[0,0,0,0]}]}
+    };
+
+    scoreDonut={
+      update:function(){},
+      data:{datasets:[{data:[0,0,0]}]}
+    };
+
+    tpsChart={
+      update:function(){},
+      data:{labels:[],datasets:[{data:[]}]}
+    };
+
+    tokenTimeChart={
+      update:function(){},
+      data:{
+        labels:[],
+        datasets:[
+          {data:[]},
+          {data:[]},
+          {data:[]}
+        ]
+      }
+    };
+  }
+}
+
+function e(s){
+  return String(s==null?"":s)
+    .replace(/&/g,"&amp;")
+    .replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;")
+    .replace(/"/g,"&quot;")
+    .replace(/'/g,"&#39;");
+}
+
+function fmtTime(){
+  return new Date().toLocaleTimeString("en-GB",{
+    hour12:false
+  });
+}
+
+function addLog(type,msg,badge,listId){
+  try{
+    listId=listId||"logList";
+
+    var lst=q(listId);
+
+    if(!lst)return;
+
+    var el=document.createElement("div");
+
+    el.className="log-entry";
+
+    el.innerHTML=
+      '<span class="log-time">'+fmtTime()+'</span>'+
+      '<span class="log-badge '+e(badge)+'">'+e(type)+'</span>'+
+      '<span class="log-msg">'+e(msg)+'</span>';
+
+    lst.insertBefore(el,lst.firstChild);
+
+    while(lst.children.length>MAX_LOG){
+      lst.removeChild(lst.lastChild);
+    }
+
+  }catch(err){
+    console.error("addLog failed:",err);
+  }
+}
+
+function updateStats(){
+  try{
+    q("totalRequests").textContent=stats.requests;
+    q("totalResponses").textContent=stats.responses;
+    q("totalErrors").textContent=stats.errors;
+    q("activeUsers").textContent=stats.users.size;
+
+    var sec=Math.floor((Date.now()-startTime)/1000);
+    var h=Math.floor(sec/3600);
+    var m=Math.floor((sec%3600)/60);
+    var s=sec%60;
+
+    q("uptime").textContent=
+      "Uptime "+h+"h "+m+"m "+s+"s";
+
+    if(scoreDonut&&scoreDonut.data){
+      scoreDonut.data.datasets[0].data=[
+        scoreCounts.PASS||0,
+        scoreCounts.NEEDS_IMPROVEMENT||0,
+        scoreCounts.FAIL||0
+      ];
+
+      scoreDonut.update("none");
+    }
+
+    if(tpsHistory.length){
+      var sum=tpsHistory.reduce(function(a,b){
+        return a+b;
+      },0);
+
+      q("avgTps").textContent=
+        (sum/tpsHistory.length).toFixed(1);
+    }
+
+    renderUserTable();
+
+  }catch(err){
+    console.error("updateStats failed:",err);
+  }
+}
+
+function updateRadar(reviews){
+  try{
+    var map={
+      ClarityAgent:0,
+      HelpfulnessAgent:1,
+      ToneAgent:2,
+      SafetyAgent:3
+    };
+
+    var scores=[0,0,0,0];
+    var html="";
+
+    (reviews||[]).forEach(function(r){
+      if(!r)return;
+
+      var idx=
+        map[r.agent_name]!=null
+          ?map[r.agent_name]
+          :-1;
+
+      var val=
+        r.score==="PASS"
+          ?100
+          :r.score==="NEEDS_IMPROVEMENT"
+            ?50
+            :0;
+
+      if(idx>=0){
+        scores[idx]=val;
+      }
+
+      var color=
+        r.score==="PASS"
+          ?"var(--success)"
+          :r.score==="NEEDS_IMPROVEMENT"
+            ?"var(--warning)"
+            :"var(--danger)";
+
+      html+=
+        '<div class="agent-detail">'+
+          '<div class="agent-detail-name">'+
+            e(r.agent_name)+
+          '</div>'+
+          '<div class="agent-detail-score" style="color:'+color+'">'+
+            e(r.score)+
+          '</div>'+
+          (
+            r.feedback
+              ?'<div class="agent-detail-feedback">'+
+                e(String(r.feedback).substring(0,100))+
+                '</div>'
+              :""
+          )+
+        '</div>';
+    });
+
+    q("agentDetails").innerHTML=html;
+
+    if(agentRadar&&agentRadar.data){
+      agentRadar.data.datasets[0].data=scores;
+      agentRadar.update("none");
+    }
+
+  }catch(err){
+    console.error("updateRadar failed:",err);
+  }
+}
+
+function addAgentStep(d){
+  try{
+    if(!d)return;
+
+    var pipe=q("agentPipeline");
+
+    if(
+      pipe.children.length===1 &&
+      pipe.children[0].textContent.indexOf("Awaiting")>=0
+    ){
+      pipe.innerHTML="";
+    }
+
+    var step=document.createElement("div");
+
+    step.className="agent-step";
+
+    var scoreClass=d.score||"";
+    var feedback=d.feedback||"No issues found.";
+
+    step.innerHTML=
+      '<div class="agent-step-header">'+
+        '<span class="agent-name">'+
+          e(d.agent_name)+
+          ' <span style="color:var(--muted-2);font-weight:400">('+e(d.review_type)+')</span>'+
+        '</span>'+
+        '<span class="agent-score '+e(scoreClass)+'">'+
+          e(d.score)+
+        '</span>'+
+      '</div>'+
+      '<div class="agent-feedback">'+
+        e(feedback)+
+      '</div>'+
+      (
+        d.suggested_fix
+          ?'<div class="agent-fix">'+
+              '<strong>Suggested Fix</strong>'+
+              e(d.suggested_fix)+
+            '</div>'
+          :""
+      );
+
+    pipe.insertBefore(step,pipe.firstChild);
+
+    while(pipe.children.length>20){
+      pipe.removeChild(pipe.lastChild);
+    }
+
+    q("agentPipelineStatus").textContent=
+      "Step "+
+      (d.step_number||"?")+
+      "/"+
+      (d.total_steps||"?")+
+      " · "+
+      (d.agent_name||"");
+
+    addLog(
+      "AGENT",
+      String(d.agent_name||"")+
+      ": "+
+      String(d.score||"")+
+      " — "+
+      String(feedback).substring(0,80),
+      "ast",
+      "agentHistory"
+    );
+
+  }catch(err){
+    console.error("addAgentStep failed:",err);
+  }
+}
+
+function addLLMLog(d){
+  try{
+    if(!d)return;
+
+    llmReviewCount++;
+
+    q("llmReviewCount").textContent=
+      llmReviewCount+
+      " review"+
+      (llmReviewCount!==1?"s":"");
+
+    var log=q("llmReviewLog");
+
+    var entry=document.createElement("div");
+
+    entry.className="log-entry llm";
+
+    var header=document.createElement("div");
+
+    header.className="log-header";
+
+    var tag=document.createElement("span");
+
+    tag.className="log-tag llm-tag";
+    tag.textContent="LLM";
+
+    var name=document.createElement("span");
+
+    name.className="agent-name";
+
+    name.textContent=
+      String(d.agent_name||"")+
+      " ("+
+      String(d.review_type||"")+
+      ")";
+
+    var score=document.createElement("span");
+
+    var sc=
+      d.llm_score==="PASS"
+        ?"PASS"
+        :d.llm_score==="NEEDS_IMPROVEMENT"
+          ?"NEEDS_IMPROVEMENT"
+          :"FAIL";
+
+    score.className="agent-score "+sc;
+    score.textContent=d.llm_score||"UNKNOWN";
+
+    header.appendChild(tag);
+    header.appendChild(name);
+    header.appendChild(score);
+
+    var fb=document.createElement("div");
+
+    fb.className="agent-feedback";
+    fb.textContent=d.llm_feedback||"No LLM feedback";
+
+    var meta=document.createElement("div");
+
+    meta.className="llm-meta";
+
+    var duration=document.createElement("span");
+
+    duration.textContent=
+      "◷ "+
+      String(d.duration_ms||0)+
+      "ms";
+
+    var rule=document.createElement("span");
+
+    rule.textContent=
+      "Rule: "+
+      String(d.rule_based_score||"");
+
+    var match=document.createElement("span");
+
+    var same=
+      d.rule_based_score===d.llm_score;
+
+    match.textContent=
+      same
+        ?"✓ Match"
+        :"⚠ Differs";
+
+    match.style.color=
+      same
+        ?"var(--success)"
+        :"var(--warning)";
+
+    meta.appendChild(duration);
+    meta.appendChild(rule);
+    meta.appendChild(match);
+
+    entry.appendChild(header);
+    entry.appendChild(fb);
+    entry.appendChild(meta);
+
+    log.insertBefore(entry,log.firstChild);
+
+    while(log.children.length>100){
+      log.removeChild(log.lastChild);
+    }
+
+  }catch(err){
+    console.error("addLLMLog failed:",err);
+  }
+}
+
+function updateTpsChart(tps){
+  try{
+    tps=Number(tps)||0;
+
+    tpsHistory.push(tps);
+
+    if(tpsHistory.length>20){
+      tpsHistory.shift();
+    }
+
+    if(!tpsChart||!tpsChart.data)return;
+
+    if(tpsChart.data.labels.length>=20){
+      tpsChart.data.labels.shift();
+      tpsChart.data.datasets[0].data.shift();
+    }
+
+    tpsChart.data.labels.push("");
+    tpsChart.data.datasets[0].data.push(tps);
+
+    tpsChart.update("none");
+
+  }catch(err){
+    console.error("updateTpsChart failed:",err);
+  }
+}
+
+function updateTokenTimeChart(entry){
+  try{
+    if(!entry||!tokenTimeChart||!tokenTimeChart.data){
+      return;
+    }
+
+    var maxPts=50;
+
+    if(tokenTimeChart.data.labels.length>=maxPts){
+      tokenTimeChart.data.labels.shift();
+
+      tokenTimeChart.data.datasets.forEach(function(d){
+        d.data.shift();
+      });
+    }
+
+    tokenTimeChart.data.labels.push("");
+
+    tokenTimeChart.data.datasets[0].data.push(
+      Number(entry.total_tokens)||0
+    );
+
+    tokenTimeChart.data.datasets[1].data.push(
+      Number(entry.prompt_tokens)||0
+    );
+
+    tokenTimeChart.data.datasets[2].data.push(
+      Number(entry.completion_tokens)||0
+    );
+
+    tokenTimeChart.update("none");
+
+  }catch(err){
+    console.error("updateTokenTimeChart failed:",err);
+  }
+}
+
+function renderTokenTable(tu){
+  try{
+    tokenUsage=tu||{};
+
+    var ids=Object.keys(tokenUsage);
+
+    var tb=q("tokenTable").querySelector("tbody");
+
+    if(!ids.length){
+      tb.innerHTML=
+        '<tr><td colspan="6" class="empty-state">No token data yet</td></tr>';
+
+      return;
+    }
+
+    var maxVal=Math.max.apply(
+      null,
+      ids.map(function(i){
+        return Number(tokenUsage[i].total_tokens)||0;
+      })
+    );
+
+    var rows="";
+
+    ids.forEach(function(id){
+      var u=tokenUsage[id]||{};
+
+      var total=
+        Number(u.total_tokens)||0;
+
+      var pct=
+        total>50000
+          ?"high"
+          :total>10000
+            ?"med"
+            :"low";
+
+      var w=
+        maxVal
+          ?Math.round(total/maxVal*100)
+          :0;
+
+      rows+=
+        "<tr>"+
+          '<td class="user-id-cell">'+e(id)+"</td>"+
+          "<td>"+total+"</td>"+
+          "<td>"+Number(u.total_requests||0)+"</td>"+
+          "<td>"+Number(u.prompt_tokens||0)+"</td>"+
+          "<td>"+Number(u.completion_tokens||0)+"</td>"+
+          '<td><div class="token-bar">'+
+            '<div class="token-bar-fill '+pct+'" style="width:'+w+'%"></div>'+
+          "</div></td>"+
+        "</tr>";
+    });
+
+    tb.innerHTML=rows;
+
+  }catch(err){
+    console.error("renderTokenTable failed:",err);
+  }
+}
+
+function renderUserTable(){
+  try{
+    var tb=q("userTable").querySelector("tbody");
+
+    if(!stats.users.size){
+      tb.innerHTML=
+        '<tr><td colspan="7" class="empty-state">No user activity yet</td></tr>';
+
+      return;
+    }
+
+    var rows="";
+
+    stats.users.forEach(function(info,id){
+
+      var tu=
+        tokenUsage[id]||{
+          total_tokens:0
+        };
+
+      var r=
+        restrictions[id]||{
+          blocked:false,
+          token_limit:0
+        };
+
+      var st=
+        r.blocked
+          ?"blocked"
+          :"active";
+
+      var sl=
+        r.blocked
+          ?"BLOCKED"
+          :"Active";
+
+      rows+=
+        "<tr>"+
+          '<td class="user-id-cell">'+e(id)+"</td>"+
+          '<td style="color:var(--muted);max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+
+            e(info.lastMsg||"")+
+          '">'+
+            e((info.lastMsg||"—").substring(0,45))+
+          "</td>"+
+          "<td>"+Number(info.count||0)+"</td>"+
+          "<td>"+Number(tu.total_tokens||0)+"</td>"+
+          '<td><span class="status-badge '+st+'">'+sl+"</span></td>"+
+          "<td>"+(Number(r.token_limit)||"∞")+"</td>"+
+          '<td><button class="btn" onclick="openUserModal(\''+
+            e(id)+
+          "')\">Manage</button></td>"+
+        "</tr>";
+    });
+
+    tb.innerHTML=rows;
+
+  }catch(err){
+    console.error("renderUserTable failed:",err);
+  }
+}
+
+function downloadHistory(){
+  fetch("/api/history",{cache:"no-store"})
+    .then(function(r){
+      if(!r.ok)throw new Error("HTTP "+r.status);
+      return r.json();
+    })
+    .then(function(data){
+
+      var b=new Blob(
+        [JSON.stringify(data,null,2)],
+        {type:"application/json"}
+      );
+
+      var url=URL.createObjectURL(b);
+
+      var a=document.createElement("a");
+
+      a.href=url;
+
+      a.download=
+        "all_conversations_"+
+        new Date().toISOString().slice(0,19)+
+        ".json";
+
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+
+      setTimeout(function(){
+        URL.revokeObjectURL(url);
+      },1000);
+
+    })
+    .catch(function(err){
+      console.error("Download failed:",err);
+      alert("Download failed: "+err.message);
+    });
+}
+
+function exportUserData(){
+  var uid=q("exportUserId").value;
+
+  if(!uid){
+    alert("Please enter a User ID first.");
+    return;
+  }
+
+  fetch(
+    "/api/history?user_id="+encodeURIComponent(uid),
+    {cache:"no-store"}
+  )
+    .then(function(r){
+      if(!r.ok)throw new Error("HTTP "+r.status);
+      return r.json();
+    })
+    .then(function(data){
+
+      var b=new Blob(
+        [JSON.stringify(data,null,2)],
+        {type:"application/json"}
+      );
+
+      var url=URL.createObjectURL(b);
+
+      var a=document.createElement("a");
+
+      a.href=url;
+
+      a.download=
+        "user_"+
+        uid+
+        "_"+
+        new Date().toISOString().slice(0,19)+
+        ".json";
+
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+
+      setTimeout(function(){
+        URL.revokeObjectURL(url);
+      },1000);
+
+    })
+    .catch(function(err){
+      console.error("Export failed:",err);
+      alert("Download failed: "+err.message);
+    });
+}
+
+function loadRestrictions(){
+  return fetch("/api/restrictions",{cache:"no-store"})
+    .then(function(r){
+      if(!r.ok)throw new Error("HTTP "+r.status);
+      return r.json();
+    })
+    .then(function(d){
+      restrictions=d||{};
+      renderUserTable();
+      return d;
+    })
+    .catch(function(err){
+      console.error("Failed to load restrictions:",err);
+      return null;
+    });
+}
+
+function openUserModal(uid){
+  try{
+    q("modalUserId").value=uid;
+
+    var r=
+      restrictions[uid]||{
+        blocked:false,
+        token_limit:0
+      };
+
+    q("modalTokenLimit").value=
+      Number(r.token_limit)||0;
+
+    q("modalBlocked").checked=
+      Boolean(r.blocked);
+
+    q("modal").classList.add("show");
+
+  }catch(err){
+    console.error("openUserModal failed:",err);
+  }
+}
+
+function closeModal(){
+  q("modal").classList.remove("show");
+}
+
+function postRestriction(uid,action,limit){
+  return fetch("/api/restrict",{
+    method:"POST",
+    headers:{
+      "Content-Type":"application/json"
+    },
+    body:JSON.stringify({
+      user_id:uid,
+      action:action,
+      token_limit:limit
+    })
+  }).then(function(r){
+    if(!r.ok)throw new Error("HTTP "+r.status);
+    return r.json();
+  });
+}
+
+function saveUser(){
+  var uid=parseInt(q("modalUserId").value,10);
+  var lim=parseInt(q("modalTokenLimit").value,10)||0;
+  var blocked=q("modalBlocked").checked;
+
+  if(!Number.isFinite(uid)){
+    alert("Invalid User ID.");
+    return;
+  }
+
+  var saveButton=
+    q("modal").querySelector(".btn.accent");
+
+  saveButton.disabled=true;
+
+  postRestriction(uid,"set_limit",lim)
+    .then(function(){
+      return loadRestrictions();
+    })
+    .then(function(){
+
+      var current=
+        restrictions[String(uid)]||{
+          blocked:false,
+          token_limit:0
+        };
+
+      if(Boolean(current.blocked)!==blocked){
+        return postRestriction(uid,"toggle",lim);
+      }
+
+      return null;
+    })
+    .then(function(){
+      return loadRestrictions();
+    })
+    .then(function(){
+      closeModal();
+    })
+    .catch(function(err){
+      console.error("Failed to save user:",err);
+      alert("Failed to save user: "+err.message);
+    })
+    .finally(function(){
+      saveButton.disabled=false;
+    });
+}
+
+function removeUser(){
+  var uid=parseInt(q("modalUserId").value,10);
+
+  if(!Number.isFinite(uid)){
+    alert("Invalid User ID.");
+    return;
+  }
+
+  if(!confirm("Remove restrictions and user configuration for User "+uid+"?")){
+    return;
+  }
+
+  postRestriction(uid,"remove",0)
+    .then(function(){
+      return loadRestrictions();
+    })
+    .then(function(){
+      closeModal();
+    })
+    .catch(function(err){
+      console.error("Failed to remove user:",err);
+      alert("Failed to remove user: "+err.message);
+    });
+}
+
+function setupNav(){
+
+  var titles={
+    dashboard:"Dashboard",
+    agents:"Agents Pipeline",
+    tokens:"Tokens & Performance",
+    users:"Users"
+  };
+
+  document.querySelectorAll(".sidebar-link").forEach(function(btn){
+
+    btn.addEventListener("click",function(){
+
+      try{
+
+        document.querySelectorAll(".sidebar-link")
+          .forEach(function(b){
+            b.classList.remove("active");
+          });
+
+        document.querySelectorAll(".tab-content")
+          .forEach(function(t){
+            t.classList.remove("active");
+          });
+
+        btn.classList.add("active");
+
+        var tab=q("tab-"+btn.dataset.tab);
+
+        if(tab){
+          tab.classList.add("active");
+        }
+
+        q("pageTitle").textContent=
+          titles[btn.dataset.tab]||"Dashboard";
+
+        if(btn.dataset.tab==="users"){
+          loadRestrictions();
+        }
+
+      }catch(err){
+        console.error("Navigation failed:",err);
+      }
+
+    });
+
+  });
+}
+
+function loadInitialData(){
+
+  Promise.allSettled([
+
+    fetch("/api/history",{cache:"no-store"})
+      .then(function(r){
+        if(!r.ok)throw new Error("HTTP "+r.status);
+        return r.json();
+      })
+      .then(function(data){
+
+        if(!data||typeof data!=="object"){
+          return;
+        }
+
+        Object.keys(data).forEach(function(chatId){
+
+          var messages=
+            Array.isArray(data[chatId])
+              ?data[chatId]
+              :[];
+
+          messages.forEach(function(msg){
+
+            if(!msg)return;
+
+            var uid=msg.user_id;
+
+            if(
+              uid!==undefined&&
+              uid!==null&&
+              Number(uid)!==0
+            ){
+
+              uid=String(uid);
+
+              if(!stats.users.has(uid)){
+                stats.users.set(uid,{
+                  lastMsg:"",
+                  count:0
+                });
+              }
+
+              var user=stats.users.get(uid);
+
+              if(msg.role==="user"){
+                user.lastMsg=
+                  String(msg.content||"").substring(0,80);
+
+                user.count++;
+              }
+
+            }
+
+          });
+
+        });
+
+        updateStats();
+
+      }),
+
+    fetch("/api/tokens",{cache:"no-store"})
+      .then(function(r){
+        if(!r.ok)throw new Error("HTTP "+r.status);
+        return r.json();
+      })
+      .then(function(data){
+
+        tokenUsage=
+          data&&data.per_user
+            ?data.per_user
+            :{};
+
+        renderTokenTable(tokenUsage);
+        renderUserTable();
+
+        var history=
+          data&&Array.isArray(data.history)
+            ?data.history
+            :[];
+
+        history.forEach(function(entry){
+          updateTpsChart(entry.tokens_per_second);
+          updateTokenTimeChart(entry);
+        });
+
+      }),
+
+    fetch("/api/restrictions",{cache:"no-store"})
+      .then(function(r){
+        if(!r.ok)throw new Error("HTTP "+r.status);
+        return r.json();
+      })
+      .then(function(data){
+        restrictions=data||{};
+        renderUserTable();
+      }),
+
+    fetch("/api/agent_steps",{cache:"no-store"})
+      .then(function(r){
+        if(!r.ok)throw new Error("HTTP "+r.status);
+        return r.json();
+      })
+      .then(function(data){
+
+        var history=
+          data&&Array.isArray(data.history)
+            ?data.history
+            :[];
+
+        history
+          .slice()
+          .reverse()
+          .forEach(function(step){
+            addAgentStep(step);
+          });
+
+      }),
+
+    fetch("/api/agent_llm",{cache:"no-store"})
+      .then(function(r){
+        if(!r.ok)throw new Error("HTTP "+r.status);
+        return r.json();
+      })
+      .then(function(data){
+
+        var history=
+          data&&Array.isArray(data.history)
+            ?data.history
+            :[];
+
+        history
+          .slice()
+          .reverse()
+          .forEach(function(entry){
+            addLLMLog(entry);
+          });
+
+      })
+
+  ]).then(function(){
+    updateStats();
+  });
+}
+
+function handleRequest(d){
+  if(!d)return;
+
+  stats.requests++;
+
+  var uid=String(d.user_id);
+
+  if(!stats.users.has(uid)){
+    stats.users.set(uid,{
+      lastMsg:"",
+      count:0
+    });
+  }
+
+  var u=stats.users.get(uid);
+
+  u.lastMsg=
+    String(d.message||"").substring(0,80);
+
+  u.count++;
+
+  q("lastEvent").textContent=
+    "Request from "+uid;
+
+  addLog(
+    "REQ",
+    "[User "+uid+"] "+String(d.message||""),
+    "req"
+  );
+
+  updateStats();
+}
+
+function handleResponse(d){
+  if(!d)return;
+
+  stats.responses++;
+
+  var t=
+    String(d.response||"").substring(0,120);
+
+  q("lastEvent").textContent=
+    "Response chat "+String(d.chat_id);
+
+  addLog(
+    "RESP",
+    "[Chat "+String(d.chat_id)+"] "+
+    t+
+    (String(d.response||"").length>120?"...":""),
+    "resp"
+  );
+
+  updateStats();
+}
+
+function handleReview(d){
+  if(!d)return;
+
+  (d.agent_reviews||[]).forEach(function(r){
+
+    if(!r)return;
+
+    if(scoreCounts[r.score]===undefined){
+      scoreCounts[r.score]=0;
+    }
+
+    scoreCounts[r.score]++;
+  });
+
+  if(d.agent_reviews){
+    updateRadar(d.agent_reviews);
+  }
+
+  addLog(
+    "REV",
+    "Passed:"+String(d.passed)+
+    " | Rewrite:"+String(d.requires_rewrite)+
+    (
+      d.rewrite_feedback
+        ?" | "+String(d.rewrite_feedback)
+        :""
+    ),
+    "rev"
+  );
+
+  updateStats();
+}
+
+function handleTokens(d){
+  if(!d)return;
+
+  addLog(
+    "TOK",
+    String(d.total_tokens||0)+
+    " tokens | "+
+    String(d.tokens_per_second||0)+
+    " t/s | "+
+    String(d.elapsed_ms||0)+
+    "ms",
+    "tkn",
+    "tokenLog"
+  );
+
+  updateTpsChart(d.tokens_per_second);
+  updateTokenTimeChart(d);
+
+  tokenUsage=d.per_user||{};
+
+  renderTokenTable(tokenUsage);
+
+  updateStats();
+}
+
+function handleError(d){
+  if(!d)return;
+
+  stats.errors++;
+
+  addLog(
+    "ERR",
+    "[Chat "+String(d.chat_id)+"] "+
+    String(d.error||"Unknown error"),
+    "err"
+  );
+
+  updateStats();
+}
+
+function handleClear(d){
+  if(!d)return;
+
+  addLog(
+    "CLR",
+    "[Chat "+String(d.chat_id)+"] Memory cleared",
+    "clr"
+  );
+
+  updateStats();
+}
+
+function connectSSE(){
+
+  if(es){
+    try{
+      es.close();
+    }catch(err){}
+
+    es=null;
+  }
+
+  if(reconnectTimer){
+    clearTimeout(reconnectTimer);
+    reconnectTimer=null;
+  }
+
+  setConnectionStatus(false);
+
+  q("statusText").textContent="Connecting";
+
+  try{
+
+    es=new EventSource("/events");
+
+    es.onopen=function(){
+
+      reconnectDelay=1000;
+
+      setConnectionStatus(true);
+
+      q("lastEvent").textContent=
+        "Monitor connected";
+
+    };
+
+    es.onerror=function(){
+
+      setConnectionStatus(false);
+
+      if(es){
+        try{
+          es.close();
+        }catch(err){}
+      }
+
+      if(!reconnectTimer){
+
+        reconnectTimer=setTimeout(function(){
+
+          reconnectTimer=null;
+
+          connectSSE();
+
+        },reconnectDelay);
+
+        reconnectDelay=
+          Math.min(reconnectDelay*2,15000);
+      }
+
+    };
+
+    es.addEventListener("connected",function(){
+
+      setConnectionStatus(true);
+
+      q("lastEvent").textContent=
+        "Monitor connected";
+
+    });
+
+    es.addEventListener("request",function(event){
+
+      var d=safeJson(event.data);
+
+      if(d)handleRequest(d);
+
+    });
+
+    es.addEventListener("response",function(event){
+
+      var d=safeJson(event.data);
+
+      if(d)handleResponse(d);
+
+    });
+
+    es.addEventListener("agent_step",function(event){
+
+      var d=safeJson(event.data);
+
+      if(d)addAgentStep(d);
+
+    });
+
+    es.addEventListener("agent_llm",function(event){
+
+      var d=safeJson(event.data);
+
+      if(d)addLLMLog(d);
+
+    });
+
+    es.addEventListener("review",function(event){
+
+      var d=safeJson(event.data);
+
+      if(d)handleReview(d);
+
+    });
+
+    es.addEventListener("tokens",function(event){
+
+      var d=safeJson(event.data);
+
+      if(d)handleTokens(d);
+
+    });
+
+    es.addEventListener("error_event",function(event){
+
+      var d=safeJson(event.data);
+
+      if(d)handleError(d);
+
+    });
+
+    es.addEventListener("clear",function(event){
+
+      var d=safeJson(event.data);
+
+      if(d)handleClear(d);
+
+    });
+
+  }catch(err){
+
+    console.error("SSE connection failed:",err);
+
+    setConnectionStatus(false);
+
+    reconnectTimer=setTimeout(function(){
+
+      reconnectTimer=null;
+
+      connectSSE();
+
+    },reconnectDelay);
+
+    reconnectDelay=
+      Math.min(reconnectDelay*2,15000);
+  }
+}
+
+document.addEventListener("DOMContentLoaded",function(){
+
+  initCharts();
+
+  setupNav();
+
+  loadInitialData();
+
+  connectSSE();
+
+  setInterval(updateStats,8000);
+
+  q("modal").addEventListener("click",function(event){
+
+    if(event.target===q("modal")){
+      closeModal();
+    }
+
+  });
+
+  document.addEventListener("keydown",function(event){
+
+    if(event.key==="Escape"){
+      closeModal();
+    }
+
+  });
+
+});
+</script>
+
+</body>
+</html>
